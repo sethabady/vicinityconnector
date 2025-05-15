@@ -1,0 +1,42 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Docker",
+            "request": "launch",
+            "type": "al",
+            "environmentType": "OnPrem",
+            "server": "http://vicconnector",
+            "serverInstance": "BC",
+            "authentication": "UserPassword",
+            "startupObjectId": 50800,
+            "startupObjectType": "Page",
+            "breakOnError": "All",
+            "launchBrowser": true,
+            "enableLongRunningSqlStatements": true,
+            "enableSqlInformationDebugger": true,
+            "tenant": "default",
+            "usePublicURLFromServer": true
+        },
+        {
+            "name": "Cloud Sandbox2",
+            "type": "al",
+            "request": "launch",
+            "tenant": "31916a16-8d4d-4e9b-b8bd-a4031001d6e5",
+            "schemaUpdateMode": "ForceSync",
+            "environmentType": "Sandbox",
+            "environmentName": "Sandbox2"
+            
+        
+          
+            //"schemaUpdateMode": "ForceSync"
+            //local
+            /*
+            "name": "Your own server",
+            "server": "http://localhost",
+            "serverInstance": "BC140",
+            "authentication": "Windows",
+            */
+        }
+    ]
+}

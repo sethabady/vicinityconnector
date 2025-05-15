@@ -1,0 +1,45 @@
+{
+  "id": "22db7218-852e-4e91-bd5e-3348043bc712",
+  "name": "Vicinity Connector",
+  "publisher": "Vicinity Software",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [    
+  {
+    "id": "ba1776ba-1198-4b4c-a61e-c4612f1880d5",
+    "publisher": "Insight Works",
+    "name": "IWorks Common",
+    "version": "2.15.0.0"
+  },
+  {
+    "id": "d04cb6c5-68c8-41d7-8e25-824b48e14f04",
+    "publisher": "Insight Works",
+    "name": "Warehouse Insight Advanced WMS",
+    "version": "2.13.0.0"
+  }
+],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "25.0.0.0",
+  "idRanges": [
+    {
+      "from": 50800,
+      "to": 50999
+    }
+  ],
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": true,
+    "includeSourceInSymbolFile": true
+  },
+  "runtime": "14.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}
