@@ -1,7 +1,7 @@
-table 50803 "VIC Batch Consumption To Scan"
+table 50812 "VIC IW Batch Output"
 {
     DataClassification = ToBeClassified;
-    Caption = 'Batch Consumption to Scan';    
+    Caption = 'VIC Batch Output to Scan';    
 
     fields
     {
@@ -82,11 +82,6 @@ table 50803 "VIC Batch Consumption To Scan"
             DataClassification = ToBeClassified;
             Caption = 'Scan Type';
         }
-        field(17; ParentComponentId; code[32])
-        {
-            DataClassification = ToBeClassified;
-            Caption = 'Parent Component ID';
-        }
         field(210; User; Code[50])
         {
             DataClassification = ToBeClassified;
@@ -99,6 +94,10 @@ table 50803 "VIC Batch Consumption To Scan"
         key(Key1; FacilityId, BatchNumber, LineIdNumber)
         {
             Clustered = true;
+        }
+        key(Key2; FacilityId, BatchNumber, User)
+        {
+            Clustered = false;
         }
     }
 }

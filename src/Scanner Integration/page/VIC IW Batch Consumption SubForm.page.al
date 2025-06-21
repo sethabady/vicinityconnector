@@ -1,12 +1,12 @@
-page 50805 "VIC Batch Output SubForm"
+page 50817 "VIC IW Batch Cnsmption SubForm"
 {
     AutoSplitKey = true;
-    Caption = 'Outputs';
+    Caption = 'Consumptions';
     LinksAllowed = false;
     InsertAllowed = false;
     DeleteAllowed = false;
     PageType = ListPart;
-    SourceTable = "VIC Batch Output To Scan";
+    SourceTable = "VIC IW Batch Consumption";
     //    SourceTableView = WHERE("Document Type" = FILTER(Order));
 
     layout
@@ -17,6 +17,11 @@ page 50805 "VIC Batch Output SubForm"
             {
                 ShowCaption = true;
                 field("Scan Type"; Rec.ScanType)
+                {
+                    ApplicationArea = All;
+                    Editable = false ;
+                }
+                field("Parent Component ID"; Rec.ParentComponentId)
                 {
                     ApplicationArea = All;
                     Editable = false ;
@@ -77,12 +82,6 @@ page 50805 "VIC Batch Output SubForm"
                 field("Lot Number"; rec.LotNumber)
                 {
                     ApplicationArea = All;
-                }
-                field("User"; Rec.User)
-                {
-                    ApplicationArea = All;
-                    Caption = 'User';
-                    Editable = false;
                 }
             }
         }

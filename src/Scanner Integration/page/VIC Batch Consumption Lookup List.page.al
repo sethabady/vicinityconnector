@@ -68,6 +68,6 @@ page 50803 "VIC Consumption Lookup List"
         if StrLen(VicinitySetup.ApiUrl) = 0 then begin
             Error('Vicinity API URL has not been configured on the Vicinity Setup page.')
         end;
-        VICWebServiceInterface.OnFetchBatchSummaries();
+        VICWebServiceInterface.OnFetchBatchSummaries(UserId);
     end;
 }

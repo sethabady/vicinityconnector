@@ -1,4 +1,4 @@
-table 50803 "VIC Batch Consumption To Scan"
+table 50813 "VIC IW Batch Consumption"
 {
     DataClassification = ToBeClassified;
     Caption = 'Batch Consumption to Scan';    

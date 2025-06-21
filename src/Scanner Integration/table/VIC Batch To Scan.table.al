@@ -65,6 +65,11 @@ table 50801 "VIC Batch To Scan"
             DataClassification = ToBeClassified;
             Caption = 'Post Thru to BC';
         }
+        field(210; User; Code[50])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'User ID';
+        }
     }
 
     keys

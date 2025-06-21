@@ -1,10 +1,10 @@
-page 50806 "VIC Batch Consumption"
+page 50814 "VIC IW Batch Output"
 {
-    Caption = 'Batch Consumptions';
+    Caption = 'Batch Outputs';
     PageType = Document;
     //    ApplicationArea = All;
     //    UsageCategory = Tasks;
-    SourceTable = "VIC Batch To Scan";
+    SourceTable = "VIC IW Batch";
     InsertAllowed = false;
     DeleteAllowed = false;
 
@@ -27,6 +27,13 @@ page 50806 "VIC Batch Consumption"
                     Caption = 'Batch Number';
                     Editable = false;
                 }
+                field("User"; Rec.User)
+                {
+                    ApplicationArea = All;
+                    Caption = 'User';
+                    Editable = false;
+                }
+
                 field("Batch Description"; Rec.BatchDescription)
                 {
                     ApplicationArea = All;
@@ -69,7 +76,7 @@ page 50806 "VIC Batch Consumption"
                     Caption = 'Actual End Date';
                     Editable = false;
                 }
-                field("Post Date"; PostDate)
+                field("Post Date"; dtPostDate)
                 {
                     ApplicationArea = All;
                     Caption = 'Post Date';
@@ -80,7 +87,7 @@ page 50806 "VIC Batch Consumption"
                     Caption = 'Post Thru to BC';
                 }
             }
-            part(Consumptions; "VIC Batch Consumption SubForm")
+            part(EndItems; "VIC IW Batch Output SubForm")
             {
                 ApplicationArea = All;
                 UpdatePropagation = Both;
@@ -105,9 +112,19 @@ page 50806 "VIC Batch Consumption"
                 ToolTip = 'Write and post end-item completion transactions to Vicinity.';
 
                 trigger OnAction()
-
+                var
+                    lcodVICWebServiceInterface: Codeunit "VIC Web Api";
+                    lsResultMessage: Text;
                 begin
-                    
+                    if dtPostDate= 0D then
+                        Error('Please enter a Post Date.');
+
+                    lcodVICWebServiceInterface.OnPostIWBatchOutput(Rec.FacilityId, Rec.BatchNumber, UserId, dtPostDate, lsResultMessage);
+                    // Codeunit.Run(Codeunit::VICPostBatch, Rec);
+                    CurrPage.Update(false);
+
+Message(lsResultMessage);
+
                 end;
 
                 // trigger OnAction()
@@ -128,21 +145,13 @@ page 50806 "VIC Batch Consumption"
     }
 
     var
-        PostDate: Date;
-
-    // trigger OnOpenPage()
-    // var
-    //     VICWebServiceInterface: Codeunit "VIC Web Api";
-    // begin
-    //     PostDate := System.Today();
-    //     VICWebServiceInterface.OnFetchBatchConsumptions(Rec.FacilityId, Rec.BatchNumber);
-    // end;
+        dtPostDate: Date;
 
     trigger OnAfterGetCurrRecord()
     var
-        VICWebServiceInterface: Codeunit "VIC Web Api";
+        cuVICWebServiceInterface: Codeunit "VIC Web Api";
     begin
-        PostDate := System.Today();
-        VICWebServiceInterface.OnFetchBatchConsumptions(Rec.FacilityId, Rec.BatchNumber, UserId);
+        dtPostDate := System.Today();
+        cuVICWebServiceInterface.OnFetchIWBatchOutput(Rec.FacilityId, Rec.BatchNumber, UserId);
     end;
 }

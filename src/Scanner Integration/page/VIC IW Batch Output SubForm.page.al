@@ -1,4 +1,4 @@
-page 50805 "VIC Batch Output SubForm"
+page 50815 "VIC IW Batch Output SubForm"
 {
     AutoSplitKey = true;
     Caption = 'Outputs';
@@ -6,7 +6,7 @@ page 50805 "VIC Batch Output SubForm"
     InsertAllowed = false;
     DeleteAllowed = false;
     PageType = ListPart;
-    SourceTable = "VIC Batch Output To Scan";
+    SourceTable = "VIC IW Batch Output";
     //    SourceTableView = WHERE("Document Type" = FILTER(Order));
 
     layout

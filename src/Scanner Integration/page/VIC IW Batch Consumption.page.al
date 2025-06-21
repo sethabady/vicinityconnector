@@ -1,10 +1,10 @@
-page 50806 "VIC Batch Consumption"
+page 50816 "VIC IW Batch Consumption"
 {
     Caption = 'Batch Consumptions';
     PageType = Document;
     //    ApplicationArea = All;
     //    UsageCategory = Tasks;
-    SourceTable = "VIC Batch To Scan";
+    SourceTable = "VIC IW Batch";
     InsertAllowed = false;
     DeleteAllowed = false;
 
@@ -69,7 +69,7 @@ page 50806 "VIC Batch Consumption"
                     Caption = 'Actual End Date';
                     Editable = false;
                 }
-                field("Post Date"; PostDate)
+                field("Post Date"; dtPostDate)
                 {
                     ApplicationArea = All;
                     Caption = 'Post Date';
@@ -80,7 +80,7 @@ page 50806 "VIC Batch Consumption"
                     Caption = 'Post Thru to BC';
                 }
             }
-            part(Consumptions; "VIC Batch Consumption SubForm")
+            part(Consumptions; "VIC IW Batch Cnsmption SubForm")
             {
                 ApplicationArea = All;
                 UpdatePropagation = Both;
@@ -128,7 +128,7 @@ page 50806 "VIC Batch Consumption"
     }
 
     var
-        PostDate: Date;
+        dtPostDate: Date;
 
     // trigger OnOpenPage()
     // var
@@ -142,7 +142,7 @@ page 50806 "VIC Batch Consumption"
     var
         VICWebServiceInterface: Codeunit "VIC Web Api";
     begin
-        PostDate := System.Today();
-        VICWebServiceInterface.OnFetchBatchConsumptions(Rec.FacilityId, Rec.BatchNumber, UserId);
+        dtPostDate := System.Today();
+        VICWebServiceInterface.OnFetchIWBatchConsumption(Rec.FacilityId, Rec.BatchNumber, UserId);
     end;
 }

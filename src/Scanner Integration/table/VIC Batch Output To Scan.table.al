@@ -1,7 +1,7 @@
 table 50802 "VIC Batch Output To Scan"
 {
     DataClassification = ToBeClassified;
-    Caption = 'Batch Output to Scan';    
+    Caption = 'VIC Batch Output to Scan';    
 
     fields
     {
@@ -81,6 +81,11 @@ table 50802 "VIC Batch Output To Scan"
         {
             DataClassification = ToBeClassified;
             Caption = 'Scan Type';
+        }
+        field(210; User; Code[50])
+        {
+            DataClassification = ToBeClassified;
+            Caption = 'User ID';
         }
     }
 
