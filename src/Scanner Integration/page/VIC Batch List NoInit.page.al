@@ -1,10 +1,11 @@
 page 50810 "VIC Batch List NoInit"
 {
-    Caption = 'Vicinity Batches To Scan w/o Init';
+    Caption = 'VIC IW Batch'; //'Vicinity Batches To Scan w/o Init';
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Tasks;
-    SourceTable = "VIC Batch To Scan";
+    SourceTable = "VIC IW Batch"; // "VIC Batch To Scan";
+    
     // CardPageId = "VIC Batch Output";
     SourceTableView = sorting(BatchNumber, FacilityId) order(ascending);
     Editable = false;
@@ -17,6 +18,10 @@ page 50810 "VIC Batch List NoInit"
         {
             repeater(GroupName)
             {
+                field("User"; Rec.User)
+                {
+                    ApplicationArea = All;
+                }
                 field("Batch Number"; Rec.BatchNumber)
                 {
                     ApplicationArea = All;

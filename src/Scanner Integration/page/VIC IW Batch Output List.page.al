@@ -17,6 +17,10 @@ page 50820 "VIC IW Batch Output List"
         {
             repeater(GroupName)
             {
+                field("User"; Rec.User)
+                {
+                    ApplicationArea = All;
+                }
                 field("Batch Number"; Rec.BatchNumber)
                 {
                     ApplicationArea = All;

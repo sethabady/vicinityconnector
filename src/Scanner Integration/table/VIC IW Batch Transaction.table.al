@@ -1,7 +1,7 @@
-table 50804 "VIC IW Transaction To Post"
+table 50804 "VIC IW Batch Transaction"
 {
     DataClassification = ToBeClassified;
-    Caption = 'VIC IW Transaction To Post';    
+    Caption = 'VIC IW Batch Transaction';
 
     fields
     {
@@ -13,9 +13,9 @@ table 50804 "VIC IW Transaction To Post"
             Editable = false;
             Description = 'Contains the line number of the transaction line..';
         }
-        field(2; "User ID"; Code[50])
+        field(2; "User"; Code[50])
         {
-            Caption = 'User ID';
+            Caption = 'User';
             DataClassification = CustomerContent;
             NotBlank = true;
             Description = 'Contains the ID of the user that created the transaction line.';
@@ -67,6 +67,19 @@ table 50804 "VIC IW Transaction To Post"
         field(18; BinCode; Code[20])
         {
             Caption = 'Bin Code';
+        }
+        field(19; Quantity; Decimal)
+        {
+            Caption = 'Quantity';
+        }
+        field(20; ConsumptionTransaction; Boolean)
+        {
+            Caption = 'Consumption Transaction';
+        }
+        field(21; "Item Tracking"; Enum "Item Tracking Entry Type")
+        {
+            Caption = 'Item Tracking';
+            Editable = false;
         }
     }
 

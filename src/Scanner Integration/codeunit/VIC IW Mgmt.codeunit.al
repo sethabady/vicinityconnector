@@ -37,6 +37,8 @@ codeunit 50900 "VIC IW Mgmt."
                 refreshVicinityBatchesToScan(ptrecEventParams, pbsOutput);
             98012:
                 refreshIWBatchesToScan(ptrecEventParams, pbsOutput);
+            98013:
+                refreshIWBatchCompletionsToScan(ptrecEventParams, pbsOutput);
             98003:
                 refreshConsumptionBatchItems(ptrecEventParams, pbsOutput);
         // 98010:
@@ -52,7 +54,7 @@ codeunit 50900 "VIC IW Mgmt."
 
         lrecConfig: Record "WHI Device Configuration";
         lrecIWBatch: Record "VIC IW Batch";
-//        ltrecIWBatch: Record "VIC IW Batch" temporary;
+        //        ltrecIWBatch: Record "VIC IW Batch" temporary;
         lrrefIWBatchRef: RecordRef;
 
 
@@ -66,16 +68,19 @@ codeunit 50900 "VIC IW Mgmt."
         liLineCounter: Integer;
 
     begin
-        if not VicinitySetup.Get() then begin
-            Error('Vicinity Setup record does not exist.')
-        end;
-        if StrLen(VicinitySetup.ApiUrl) = 0 then begin
-            Error('Vicinity API URL has not been configured on the Vicinity Setup page.')
-        end;
-        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        // if not VicinitySetup.Get() then begin
+        //     Error('Vicinity Setup record does not exist.')
+        // end;
+        // if StrLen(VicinitySetup.ApiUrl) = 0 then begin
+        //     Error('Vicinity API URL has not been configured on the Vicinity Setup page.')
+        // end;
+        // lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
 
-        // Populate "VIC IW Batch" from Vicinity web services.
-         VICWebServiceInterface.OnFetchIWBatch(lcodUser);
+        // // Populate "VIC IW Batch" from Vicinity web services.
+        // VICWebServiceInterface.OnFetchIWBatch(lcodUser);
+
+        // // Commenting out the code that builds and returns data. For some reason, I'm 
+        // // unable to get it to work with the scanner. 
 
         lrecIWBatch.Reset();
         lrrefIWBatchRef.GetTable(lrecIWBatch);
@@ -87,9 +92,32 @@ codeunit 50900 "VIC IW Mgmt."
           false,
           ldnOutput);
 
+Error(ldnOutput.ToText());
         pbsOutput.AddText(ldnOutput.ToText());
-        cuActivityLogMgt.logActivity(ptrecEventParams);
+        // cuActivityLogMgt.logActivity(ptrecEventParams);
     end;
+
+    local procedure refreshIWBatchCompletionsToScan(var ptrecEventParams: Record "IWX Event Param" temporary; var pbsOutput: BigText)
+    var
+        VICWebServiceInterface: Codeunit "VIC Web Api";
+        VicinitySetup: Record "VIC Connector Setup";
+        lsFacilityId: Text;
+        lsBatchNumber: Text;
+        lcodUser: Code[50];
+    begin
+        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        if not VicinitySetup.Get() then begin
+            Error('Vicinity Setup record does not exist.')
+        end;
+        if StrLen(VicinitySetup.ApiUrl) = 0 then begin
+            Error('Vicinity API URL has not been configured on the Vicinity Setup page.')
+        end;
+        lsFacilityId := CopyStr(ptrecEventParams.GetExtendedValue('facility_id'), 1, MaxStrLen(lsFacilityId));
+        lsBatchNumber := CopyStr(ptrecEventParams.GetExtendedValue('batch_number'), 1, MaxStrLen(lsBatchNumber));
+        VICWebServiceInterface.OnFetchIWBatchOutput(lsFacilityId, lsBatchNumber, '');
+    end;
+
+
 
 
     local procedure refreshVicinityBatchesToScan(var ptrecEventParams: Record "IWX Event Param" temporary; var pbsOutput: BigText)
@@ -124,38 +152,38 @@ codeunit 50900 "VIC IW Mgmt."
         // Populate "VIC Batch To Scan" from Vicinity web services.
         VICWebServiceInterface.OnFetchBatchSummaries(lcodUser);
 
-//         lrecDocList.Reset();
+        //         lrecDocList.Reset();
 
-//         // Iterate through "VIC Batch To Scan" and populate "WHI Document List Buffer".
-//         if (lrecDocList.FindSet(false)) then
-//             repeat
-//                 ltrecDocList.Init();
-//                 liLineCounter += 1;
-//                 ltrecDocList."Entry No." := liLineCounter;
-//                 ltrecDocList."Source Table" := 50801;
-//                 ltrecDocList."Reference No." := lrecDocList.BatchNumber;
-//                 ltrecDocList."Document No." := lrecDocList.BatchNumber;
-//                 ltrecDocList."No." := lrecDocList.BatchNumber;
-//                 ltrecDocList."Custom Text 1" := lrecDocList.FacilityId;
-//                 ltrecDocList.Insert();
-//             until (lrecDocList.Next() = 0);
-//         ltrecDocList.Reset();
+        //         // Iterate through "VIC Batch To Scan" and populate "WHI Document List Buffer".
+        //         if (lrecDocList.FindSet(false)) then
+        //             repeat
+        //                 ltrecDocList.Init();
+        //                 liLineCounter += 1;
+        //                 ltrecDocList."Entry No." := liLineCounter;
+        //                 ltrecDocList."Source Table" := 50801;
+        //                 ltrecDocList."Reference No." := lrecDocList.BatchNumber;
+        //                 ltrecDocList."Document No." := lrecDocList.BatchNumber;
+        //                 ltrecDocList."No." := lrecDocList.BatchNumber;
+        //                 ltrecDocList."Custom Text 1" := lrecDocList.FacilityId;
+        //                 ltrecDocList.Insert();
+        //             until (lrecDocList.Next() = 0);
+        //         ltrecDocList.Reset();
 
-//         // Get reference to the newly populated "WHI Document List Buffer".
-//         lrrefDocListRef.GetTable(ltrecDocList);
-//         if (lrrefDocListRef.FindFirst()) then;
+        //         // Get reference to the newly populated "WHI Document List Buffer".
+        //         lrrefDocListRef.GetTable(ltrecDocList);
+        //         if (lrrefDocListRef.FindFirst()) then;
 
-// //        lcuDatasetTools.BuildLineTableEmbedRes(iEventID, lrrefDocListRef, false, ldnOutput);
+        // //        lcuDatasetTools.BuildLineTableEmbedRes(iEventID, lrrefDocListRef, false, ldnOutput);
 
-//         lcuDataSetTools.BuildLinesOnlyDataset(
-//           98002,
-//           lrrefDocListRef,
-//           false,
-//           ldnOutput);
+        //         lcuDataSetTools.BuildLinesOnlyDataset(
+        //           98002,
+        //           lrrefDocListRef,
+        //           false,
+        //           ldnOutput);
 
-//         //Error(ldnOutput.ToText());
+        //         //Error(ldnOutput.ToText());
 
-//         pbsOutput.AddText(ldnOutput.ToText());
+        //         pbsOutput.AddText(ldnOutput.ToText());
     end;
 
     local procedure refreshCompletionBatchItems(var ptrecEventParams: Record "IWX Event Param" temporary; var pbsOutput: BigText)

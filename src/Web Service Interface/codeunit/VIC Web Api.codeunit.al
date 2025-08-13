@@ -127,6 +127,7 @@ codeunit 50803 "VIC Web Api"
         lsVicinityApiAccessKey: Text;
         lrecVicinitySetup: Record "VIC Connector Setup";
         lrecIWBatchOutput: Record "VIC IW Batch Output";
+        lrecIWBatchTransaction: Record "VIC IW Batch Transaction";
 
         lhcClient: HttpClient;
         lhrRequest: HttpRequestMessage;
@@ -139,7 +140,11 @@ codeunit 50803 "VIC Web Api"
         lrecItem: Record Item;
     begin
         lrecIWBatchOutput.Reset();
+        lrecIWBatchOutput.SetRange(User, pcodUser);
         lrecIWBatchOutput.DeleteAll();
+        lrecIWBatchTransaction.Reset();
+        lrecIWBatchTransaction.SetRange(User, pcodUser);
+        lrecIWBatchTransaction.DeleteAll();
         lrecIWBatchOutput.SetCurrentKey(FacilityId, BatchNumber, User);
         lrecVicinitySetup.Get();
         lsVicinityApiUrl := lrecVicinitySetup.ApiUrl;
