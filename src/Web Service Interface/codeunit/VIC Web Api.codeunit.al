@@ -40,26 +40,26 @@ codeunit 50803 "VIC Web Api"
     begin
     end;
 
-    local procedure initForIW()
-    var
-        lrecIWBatch: Record "VIC IW Batch";
-        lrecIWBatchConsumption: Record "VIC IW Batch Consumption";
-        lrecIWBatchOutput: Record "VIC IW Batch Output";
+    // local procedure initForIW()
+    // var
+    //     lrecIWBatch: Record "VIC IW Batch";
+    //     lrecIWBatchConsumption: Record "VIC IW Batch Consumption";
+    //     lrecIWBatchOutput: Record "VIC IW Batch Output";
 
-        VICBatch: Record "VIC Batch To Scan";
-        VICBatchOutput: Record "VIC Batch Output To Scan";
-        VICBatchConsumption: Record "VIC Batch Consumption To Scan";
-    begin
-        lrecIWBatch.Reset();
-        lrecIWBatch.DeleteAll();
-        lrecIWBatch.SetCurrentKey(FacilityId, BatchNumber);
-        lrecIWBatchConsumption.Reset();
-        lrecIWBatchConsumption.DeleteAll();
-        lrecIWBatchConsumption.SetCurrentKey(FacilityId, BatchNumber, LineIdNumber);
-        lrecIWBatchOutput.Reset();
-        lrecIWBatchOutput.DeleteAll();
-        lrecIWBatchOutput.SetCurrentKey(FacilityId, BatchNumber, LineIdNumber);
-    end;
+    //     VICBatch: Record "VIC Batch To Scan";
+    //     VICBatchOutput: Record "VIC Batch Output To Scan";
+    //     VICBatchConsumption: Record "VIC Batch Consumption To Scan";
+    // begin
+    //     lrecIWBatch.Reset();
+    //     lrecIWBatch.DeleteAll();
+    //     lrecIWBatch.SetCurrentKey(FacilityId, BatchNumber);
+    //     lrecIWBatchConsumption.Reset();
+    //     lrecIWBatchConsumption.DeleteAll();
+    //     lrecIWBatchConsumption.SetCurrentKey(FacilityId, BatchNumber, LineIdNumber);
+    //     lrecIWBatchOutput.Reset();
+    //     lrecIWBatchOutput.DeleteAll();
+    //     lrecIWBatchOutput.SetCurrentKey(FacilityId, BatchNumber, LineIdNumber);
+    // end;
 
     [EventSubscriber(ObjectType::Codeunit, Codeunit::"VIC Web Api", 'OnFetchIWBatch', '', false, false)]
     local procedure OnFetchIWBatchSubscriber(pcodUser: Code[50])
@@ -71,6 +71,9 @@ codeunit 50803 "VIC Web Api"
         lsVicinityApiAccessKey: Text;
         lrecVicinitySetup: Record "VIC Connector Setup";
         lrecIWBatch: Record "VIC IW Batch";
+        lrecIWBatchOutput: Record "VIC IW Batch Output";
+        lrecIWBatchConsumption: Record "VIC IW Batch Consumption";
+        lrecBatchTransaction: Record "VIC IW Batch Transaction";
 
         lhcClient: HttpClient;
         lhrRequest: HttpRequestMessage;
@@ -80,7 +83,21 @@ codeunit 50803 "VIC Web Api"
         ljtBatch: JsonToken;
     begin
         lrecIWBatch.Reset();
+        lrecIWBatch.SetRange(User, pcodUser);
         lrecIWBatch.DeleteAll();
+
+        lrecIWBatchOutput.Reset();
+        lrecIWBatchOutput.SetRange(User, pcodUser);
+        lrecIWBatchOutput.DeleteAll();
+
+        lrecIWBatchConsumption.Reset();
+        lrecIWBatchConsumption.SetRange(User, pcodUser);
+        lrecIWBatchConsumption.DeleteAll();
+
+        lrecBatchTransaction.Reset();
+        lrecBatchTransaction.SetRange(User, pcodUser);
+        lrecBatchTransaction.DeleteAll();
+
         lrecIWBatch.SetCurrentKey(FacilityId, BatchNumber);
         lrecVicinitySetup.Get();
         lsVicinityApiUrl := lrecVicinitySetup.ApiUrl;
@@ -185,7 +202,7 @@ codeunit 50803 "VIC Web Api"
                 lrecIWBatchOutput.Description := lrecItem.Description
             else
                 lrecIWBatchOutput.Description := 'NOT FOUND';
-            lrecIWBatchOutput.BinCode := GetJsonToken(ljtBatchEndItem.AsObject(), 'BinNumber').AsValue().AsText();  
+            lrecIWBatchOutput.BinCode := GetJsonToken(ljtBatchEndItem.AsObject(), 'BinNumber').AsValue().AsText();
             lrecIWBatchOutput.User := pcodUser;
             lrecIWBatchOutput.Insert();
         end;
@@ -318,19 +335,117 @@ codeunit 50803 "VIC Web Api"
     local procedure OnPostIWBatchOutputSubscriber(psFacilityId: Text; psBatchNumber: Text; pcodUser: Code[50]; pdtPostDate: Date; var psResultMessage: Text)
     var
         lrecVICBatchOutput: Record "VIC IW Batch Output";
+        lrecVICBatchTransaction: Record "VIC IW Batch Transaction";
+        lboolPostThruToBC: Boolean;
+        ljsonTempValue: JsonValue;
+        ljsonRequestObject: JsonObject;
+        ljsonArrayBatchTransactions: JsonArray;
+        lbIsHandled: Boolean;
+        lsResultMessage: Text;
     begin
         psResultMessage := 'NOT POSTED';
         lrecVICBatchOutput.SetCurrentKey(FacilityId, BatchNumber, User);
         lrecVICBatchOutput.SetRange(FacilityId, psFacilityId);
         lrecVICBatchOutput.SetRange(BatchNumber, psBatchNumber);
         lrecVICBatchOutput.SetRange(User, pcodUser);
+
+        lboolPostThruToBC := false;
+
         if lrecVICBatchOutput.FindFirst() then begin
             psResultMessage := '';
+
+
+            ljsonTempValue.SetValue(pdtPostDate);
+
+            ljsonRequestObject.Add('TransactionDate', ljsonTempValue);
+            ljsonRequestObject.Add('UserID', pcodUser);
+            ljsonRequestObject.Add('BatchNumber', psBatchNumber);
+            ljsonRequestObject.Add('FacilityId', psFacilityId);
+            if lboolPostThruToBC then
+                ljsonRequestObject.Add('GPBatchNumber', 'CBOTTSOP')  // POSTTOBC backwards (for now)
+            else
+                ljsonRequestObject.Add('GPBatchNumber', '');
+
             repeat
-                psResultMessage := psResultMessage + 'Batch ' + lrecVICBatchOutput.BatchNumber + format(lrecVICBatchOutput.LineIdNumber) + 'posted\';
+                lrecVICBatchTransaction.SetCurrentKey(User, FacilityId, BatchNumber, LineIdNumber);
+                lrecVICBatchTransaction.SetRange(User, pcodUser);
+                lrecVICBatchTransaction.SetRange(FacilityId, psFacilityId);
+                lrecVICBatchTransaction.SetRange(BatchNumber, psBatchNumber);
+                lrecVICBatchTransaction.SetRange(LineIdNumber, lrecVICBatchOutput.LineIdNumber);
+                if lrecVICBatchTransaction.FindFirst() then begin
+                    repeat
+                        AddTransactionToJson(lrecVICBatchOutput, lrecVICBatchTransaction, ljsonArrayBatchTransactions);
+                    until lrecVICBatchTransaction.Next() = 0;
+                end
             until lrecVICBatchOutput.Next() = 0;
+
+            // Add populated transaction array to request object.
+            ljsonRequestObject.Add('BatchTransactions', ljsonArrayBatchTransactions);
+            OnPostBatchEndItems(ljsonRequestObject, lbIsHandled, lsResultMessage);
+            if lbIsHandled then begin
+                psResultMessage := 'Batch ' + lrecVICBatchOutput.BatchNumber  + ' posted\';
+            end
+            else
+                psResultMessage := 'OnPostIWBatchOutput error: ' + lsResultMessage;
+
+        //     VICBatchEndItem.SetRange(FacilityId, FacilityId);
+        //     VICBatchEndItem.SetRange(BatchNumber, BatchNumber);
+        //     VICBatchEndItem.SetFilter(QuantityToComplete, '> 0');
+        //     if VICBatchEndItem.FindSet() then begin
+        //         repeat
+        //             VICBatchEndItem.QuantityToComplete := 0;
+        //             // VICBatchEndItem.LotNumber := '';
+        //             VICBatchEndItem.Modify();
+        //         until VICBatchEndItem.Next() = 0;
+        //     end;
+        //     Message('The batch end-items were successfully posted.')
+        // end
+        // else begin
+        //     Message('PostBatchEndItems error:\\' + ResultMessage);
+        // end;
+
+
+
+
+
+            // repeat
+            //     psResultMessage := psResultMessage + 'Batch ' + lrecVICBatchOutput.BatchNumber + format(lrecVICBatchOutput.LineIdNumber) + 'posted\';
+            // until lrecVICBatchOutput.Next() = 0;
         end;
     end;
+
+    local procedure AddTransactionToJson(precVICBatchOutput: Record "VIC IW Batch Output"; precVICBatchTransaction: Record "VIC IW Batch Transaction"; pjsonArrayBatchTransactions: JsonArray)
+    var
+        ljsonObjectBatchTransaction: JsonObject;
+        ljsonObjectQuantity: JsonObject;
+        ljsonObjectBatchLot: JsonObject;
+        ljsonArrayBatchLots: JsonArray;
+    begin
+        ljsonObjectBatchTransaction.Add('ComponentId', precVICBatchOutput.ComponentId);
+        ljsonObjectBatchTransaction.Add('SiteId', precVICBatchOutput.LocationCode);
+        ljsonObjectBatchTransaction.Add('BinNumber', precVICBatchOutput.BinCode);
+        ljsonObjectBatchTransaction.Add('LineIdNumber', precVICBatchOutput.LineIdNumber);
+
+        // Create and add quantity object.
+        ljsonObjectQuantity.Add('DecimalDigits', 5);
+        ljsonObjectQuantity.Add('Value', precVICBatchTransaction.Quantity);
+        ljsonObjectBatchTransaction.Add('Quantity', ljsonObjectQuantity);
+
+        // Create and add lot object.
+        if precVICBatchTransaction.LotNumber <> '' then begin
+            ljsonObjectBatchLot.Add('LotNumber', precVICBatchTransaction.LotNumber);
+            ljsonObjectBatchLot.Add('ReceiptDate', System.Today());
+            ljsonObjectBatchLot.Add('MfgDate', System.Today());
+            ljsonObjectBatchLot.Add('ExpnDate', CalcDate('<+30D>', System.Today()));
+            ljsonObjectBatchLot.Add('Quantity', ljsonObjectQuantity);
+            ljsonArrayBatchLots.Add(ljsonObjectBatchLot);
+            ljsonObjectBatchTransaction.Add('BatchLots', ljsonArrayBatchLots);
+        end;
+
+        // Add populated transaction to array of transactions.
+        pjsonArrayBatchTransactions.Add(ljsonObjectBatchTransaction);
+    end;
+
 
     local procedure InitBatches()
     var

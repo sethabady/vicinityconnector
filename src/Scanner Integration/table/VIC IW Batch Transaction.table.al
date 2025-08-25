@@ -85,8 +85,13 @@ table 50804 "VIC IW Batch Transaction"
 
     keys
     {
-        key(Key1; "Line No.")
+        key(Key1;"Line No.")
         {
+        }
+        key(Key2; User, FacilityId, BatchNumber, LineIdNumber)
+        {
+            Clustered = false;
+            Unique = false;
         }
     }
 }

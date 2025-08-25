@@ -46,11 +46,14 @@ codeunit 50876 "IW Vicinity Mgmt"
         lsFilter: Text;
         lcodUser: Code[50];
     begin
-        lcodUser := ''; //CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
         lsFilter := this.EscapeFilterString(ptrecEventParams.GetExtendedValue('filter'));
 
         this.UpdateVICBatches(lcodUser);
 
+        // Restrict to the current scanner user.
+        lrecVICOutputBatch.SetRange(User, lcodUser);
+        
         if (lsFilter <> '') then
             lrecVICOutputBatch.SetFilter(BatchNumber, lsFilter);
 
@@ -69,21 +72,24 @@ codeunit 50876 "IW Vicinity Mgmt"
 
     procedure GetVICInputBatchList(var ptrecEventParams: Record "IWX Event Param" temporary; var pbsOutput: BigText)
     var
-        lrecVICOutputBatch: Record "VIC IW Batch";
+        lrecVICInputBatch: Record "VIC IW Batch";
         lrrefBatchRef: RecordRef;
         ldnOutput: TextBuilder;
         lsFilter: Text;
         lcodUser: Code[50];
     begin
-        lcodUser := ''; // CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
         lsFilter := this.EscapeFilterString(ptrecEventParams.GetExtendedValue('filter'));
 
         this.UpdateVICBatches(lcodUser);
 
-        if (lsFilter <> '') then
-            lrecVICOutputBatch.SetFilter(BatchNumber, lsFilter);
+        // Restrict to the current scanner user.
+        lrecVICInputBatch.SetRange(User, lcodUser);
 
-        lrrefBatchRef.GetTable(lrecVICOutputBatch);
+        if (lsFilter <> '') then
+            lrecVICInputBatch.SetFilter(BatchNumber, lsFilter);
+
+        lrrefBatchRef.GetTable(lrecVICInputBatch);
         if (lrrefBatchRef.FindFirst()) then;
 
         this.cuDataSetTools.BuildLinesOnlyDataset(
@@ -112,15 +118,14 @@ codeunit 50876 "IW Vicinity Mgmt"
         lcodBatchNumber: Code[20];
         lcodUser: Code[50];
     begin
-        lcodUser := ''; //CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
         lcodFacilityID := CopyStr(ptrecEventParams.GetExtendedValue('facility_id'), 1, MaxStrLen(lcodFacilityID));
         lcodBatchNumber := CopyStr(ptrecEventParams.GetExtendedValue('output_batch_number'), 1, MaxStrLen(lcodBatchNumber));
         this.UpdateVicBatchOutputs(lcodFacilityID, lcodBatchNumber, lcodUser);
 
-        lrecVICOutputBatch.Get(lcodFacilityID, lcodBatchNumber);
+        lrecVICOutputBatch.Get(lcodUser, lcodFacilityID, lcodBatchNumber);
         lrecVICOutputBatch.SetRecFilter();
         lrrefBatchRef.GetTable(lrecVICOutputBatch);
-
 
         ldnOutput.Append('<DATASET>'); // start "header + line" dataset
 
@@ -198,13 +203,13 @@ codeunit 50876 "IW Vicinity Mgmt"
                 //
                 ldnOutput.Append('<FIELDS>');
 
-                // you might have some existing code similar to this alredy - just move/replace this with that
-                // change table to match
+                // Update each VIC IW Batch Output line with the calculated Quantity Remaining.
                 cuCommonFuncs.setDSFieldOverrideValue(iEventID,
                 '',
                 DATABASE::"VIC IW Batch Output",
                 lrecVICOutoutBatchLine.FieldNo("QuantityRemaining"),
                 StrSubstNo('%1', (lrecVICOutoutBatchLine.QuantityOrdered - lrecVICOutoutBatchLine.QuantityCompleted - lrecVICOutoutBatchLine.QuantityToComplete)));
+
                 lrrefBatchLineRef.GetTable(lrecVICOutoutBatchLine);
                 cuCommonFuncs.addDSFieldsForRecordDN(ldnOutput, lrrefBatchLineRef, iEventID, '');
 
@@ -213,10 +218,10 @@ codeunit 50876 "IW Vicinity Mgmt"
                 cuCommonFuncs.addDSTrackingFieldsDN(ldnOutput, lrecItem."Item Tracking Code");
                 ldnOutput.Append('</FIELDS>');
 
-
                 //
                 // "line" item tracking entries
                 //
+                lrecVICBatchTransaction.SetRange(User, lcodUser);
                 lrecVICBatchTransaction.SetRange(FacilityId, lcodFacilityID);
                 lrecVICBatchTransaction.SetRange(BatchNumber, lcodBatchNumber);
                 lrecVICBatchTransaction.SetRange(LineIdNumber, lrecVICOutoutBatchLine.LineIdNumber);
@@ -241,66 +246,12 @@ codeunit 50876 "IW Vicinity Mgmt"
                         ldnOutput.Append(StrSubstNo('<EXP>%1</EXP>', lrecVICBatchTransaction.LotExpirationDate));
                         ldnOutput.Append('</LINE>');
                     until (lrecVICBatchTransaction.Next() = 0);
-
-
-                // if lrecReservationEntry.FindSet(false) then
-                //     repeat
-
-                //         // ensure these fields are all returned/added
-                //         // I've left them as mapped up to the standard reservatione entry table but if they don't apply to your scenario,
-                //         //   then maybe default to "0" for integers and "" for text
-                //         ldnOutput.Append('<LINE>');
-                //         ldnOutput.Append(StrSubstNo('<ENTRY_NUMBER>%1</ENTRY_NUMBER>', lrecReservationEntry."Entry No."));
-                //         ldnOutput.Append(StrSubstNo('<ITEM_NUMBER>%1</ITEM_NUMBER>', cuCommonFuncs.escapeText(lrecReservationEntry."Item No.")));
-                //         ldnOutput.Append(StrSubstNo('<SERIAL_NUMBER>%1</SERIAL_NUMBER>', cuCommonFuncs.escapeText(lrecReservationEntry."Serial No.")));
-                //         ldnOutput.Append(StrSubstNo('<SOURCE_ID>%1</SOURCE_ID>', lrecReservationEntry."Source ID"));
-                //         ldnOutput.Append(StrSubstNo('<SOURCE_REF_NUMBER>%1</SOURCE_REF_NUMBER>', lrecReservationEntry."Source Ref. No."));
-                //         ldnOutput.Append(StrSubstNo('<POSITIVE>%1</POSITIVE>', lrecReservationEntry.Positive));
-                //         ldnOutput.Append(StrSubstNo('<QTY_BASE>%1</QTY_BASE>', lrecReservationEntry."Quantity (Base)"));
-                //         ldnOutput.Append(StrSubstNo('<LOT_NUMBER>%1</LOT_NUMBER>', cuCommonFuncs.escapeText(lrecReservationEntry."Lot No.")));
-                //         ldnOutput.Append(StrSubstNo('<PACKAGE_NUMBER>%1</PACKAGE_NUMBER>', cuCommonFuncs.escapeText(lrecReservationEntry."Package No.")));
-                //         ldnOutput.Append(StrSubstNo('<QTY_HANDLE_BASE>%1</QTY_HANDLE_BASE>', lrecReservationEntry."Qty. to Handle (Base)"));
-                //         ldnOutput.Append(StrSubstNo('<QTY_PER_UOM>%1</QTY_PER_UOM>', lrecReservationEntry."Qty. per Unit of Measure"));
-                //         ldnOutput.Append(StrSubstNo('<ITEM_TRACKING>%1</ITEM_TRACKING>', lrecReservationEntry."Item Tracking".AsInteger()));
-                //         ldnOutput.Append(StrSubstNo('<EXP>%1</EXP>', lrecReservationEntry."Expiration Date"));
-                //         ldnOutput.Append('</LINE>');
-                //     until (lrecReservationEntry.Next() = 0);
-
-
                 ldnOutput.Append('</R>');  // end "line" row
-
             until (lrecVICOutoutBatchLine.Next() = 0);
-
 
         ldnOutput.Append('</ROWS>');    // end "line" rows
         ldnOutput.Append('</TABLE>');   // end "line" table
         ldnOutput.Append('</DATASET>'); // end header + line dataset
-
-
-        // lrecVICOutoutBatchLine.SetRange(FacilityId, lcodFacilityID);
-        // lrecVICOutoutBatchLine.SetRange(BatchNumber, lcodBatchNumber);
-        // if lrecVICOutoutBatchLine.FindFirst() then;
-        // lrrefBatchLineRef.GetTable(lrecVICOutoutBatchLine);
-
-
-
-
-
-        // this.cuDataSetTools.SetCalculateFields(this.iEventID,
-        //                                   lrrefBatchLineRef,
-        //                                   lrecVICOutoutBatchLine.FieldNo(QuantityRemaining),
-        //                                   lrecVICOutoutBatchLine.FieldNo(QuantityOrdered),
-        //                                   lrecVICOutoutBatchLine.FieldNo(QuantityToComplete),
-        //                                   lrecVICOutoutBatchLine.FieldNo(QuantityCompleted)
-        //                                   );
-
-        // this.cuDatasetTools.BuildHeaderLineDataset(
-        //   this.iEventID,
-        //   lrrefBatchRef,
-        //   lrrefBatchLineRef,
-        //   true,
-        //   ldnOutput);          
-
         pbsOutput.AddText(ldnOutput.ToText());
 
         ptrecEventParams.setValue('Document Type', Format(DATABASE::"VIC IW Batch"));
@@ -365,7 +316,7 @@ codeunit 50876 "IW Vicinity Mgmt"
         lcodFacilityID: Code[15];
         lcodBatchNumber: Code[20];
         lcodLotNumber: Code[50];
-        liLineNumber: Integer;
+        liLineIdNumber: Integer;
         ldPreviousQuantity: Decimal;
         ldQtyToComplete: Decimal;
         lcodUser: Code[50];
@@ -373,11 +324,13 @@ codeunit 50876 "IW Vicinity Mgmt"
         lbreservation_modified: Boolean;
         lbreservation_deleted: Boolean;
         lireservationEntryNumber: Integer;
+
+        ldTotalQuantityToPost: Decimal;
     begin
         lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
         lcodFacilityID := CopyStr(ptrecEventParams.GetExtendedValue('facility_id'), 1, MaxStrLen(lcodFacilityID));
         lcodBatchNumber := CopyStr(ptrecEventParams.GetExtendedValue('output_batch_number'), 1, MaxStrLen(lcodBatchNumber));
-        liLineNumber := ptrecEventParams.getValueAsInt('Line ID Number');
+        liLineIdNumber := ptrecEventParams.getValueAsInt('Line ID Number');
         lcodLotNumber := CopyStr(ptrecEventParams.GetExtendedValue('lot_number'), 1, MaxStrLen(lcodLotNumber));
         ldtExpirationDate := this.cuCommonFuncs.getExpirationDate(ptrecEventParams);
         ldQtyToComplete := ptrecEventParams.getValueAsDecimal('qty_to_complete');
@@ -386,59 +339,69 @@ codeunit 50876 "IW Vicinity Mgmt"
         lbreservation_deleted := ptrecEventParams.getValueAsBool('reservation_deleted');
         lireservationEntryNumber := ptrecEventParams.getValueAsInt('reservation_entry_number');
 
-        lrecVICOutoutBatchLine.Get(lcodFacilityID, lcodBatchNumber, liLineNumber);
-        //        lrecVICTransactionToPost.Get();
-
-        ldPreviousQuantity := lrecVICOutoutBatchLine.QuantityToComplete;
-
-        lrecVICOutoutBatchLine.QuantityToComplete := ldQtyToComplete;
-
-        lrecVICOutoutBatchLine.QuantityRemaining := lrecVICOutoutBatchLine.QuantityRemaining - ldQtyToComplete;
-
-        lrecVICOutoutBatchLine.LotNumber := lcodLotNumber;
-        lrecVICOutoutBatchLine.ExpirationDate := ldtExpirationDate;
-        lrecVICOutoutBatchLine.Modify(true);
+        // Get the parent line.
+        lrecVICOutoutBatchLine.Get(lcodFacilityID, lcodBatchNumber, liLineIdNumber);
 
         if lbreservation_deleted then begin
             if lrecVICBatchTransaction.get(lireservationEntryNumber) then begin
                 lrecVICBatchTransaction.Delete();
             end
-
-            // lrecVICBatchTransaction.SetRange(FacilityId, lcodFacilityID);
-            // lrecVICBatchTransaction.SetRange(BatchNumber, lcodBatchNumber);
-            // lrecVICBatchTransaction.SetRange(LineIdNumber, liLineNumber);
-            // if lrecVICBatchTransaction.FindSet() then
-            //     repeat
-            //         lrecVICBatchTransaction.Delete();
-            //     until (lrecVICBatchTransaction.Next() = 0);
         end
-        else begin
-            // Equivalent of a BC Reservation -- TODO: need to refresh the dataset.
+        else if lbreservation_modified then begin
+            if lrecVICBatchTransaction.get(lireservationEntryNumber) then begin
+                lrecVICBatchTransaction.Quantity := ldQtyToComplete;
+                lrecVICBatchTransaction.LotNumber := lcodLotNumber;
+                lrecVICBatchTransaction.LotExpirationDate := ldtExpirationDate;
+                lrecVICBatchTransaction.Modify();
+            end
+        end 
+        else if lbreservation_added then begin
             lrecVICBatchTransaction.Init();
             lrecVICBatchTransaction.User := lcodUser;
             lrecVICBatchTransaction.FacilityId := lcodFacilityID;
             lrecVICBatchTransaction.BatchNumber := lcodBatchNumber;
-            lrecVICBatchTransaction.LineIdNumber := liLineNumber;
+            lrecVICBatchTransaction.LineIdNumber := liLineIdNumber;
             lrecVICBatchTransaction.ComponentId := lrecVICOutoutBatchLine.ComponentId;
             lrecVICBatchTransaction.LotNumber := lcodLotNumber;
+            lrecVICBatchTransaction.LotExpirationDate := ldtExpirationDate;
             lrecVICBatchTransaction.Quantity := ldQtyToComplete;
             lrecVICBatchTransaction.ConsumptionTransaction := false;
             lrecVICBatchTransaction.Insert();
         end;
 
+        lrecVICBatchTransaction.Reset();
+        lrecVICBatchTransaction.SetRange(User, lcodUser);
+        lrecVICBatchTransaction.SetRange(FacilityId, lcodFacilityID);
+        lrecVICBatchTransaction.SetRange(BatchNumber, lcodBatchNumber);
+        lrecVICBatchTransaction.SetRange(LineIdNumber, liLineIdNumber);
 
+        ldTotalQuantityToPost := 0;
+        if lrecVICBatchTransaction.FindSet(false) then
+            repeat
+                ldTotalQuantityToPost += lrecVICBatchTransaction.Quantity;
+            until (lrecVICBatchTransaction.Next() = 0); 
+
+        // Update the parent line. 
+        ldPreviousQuantity := lrecVICOutoutBatchLine.QuantityToComplete;
+        lrecVICOutoutBatchLine.QuantityToComplete := ldTotalQuantityToPost; // ldPreviousQuantity + ldQtyToComplete;
+        lrecVICOutoutBatchLine.QuantityRemaining :=  lrecVICOutoutBatchLine.QuantityOrdered - lrecVICOutoutBatchLine.QuantityCompleted - ldTotalQuantityToPost; // lrecVICOutoutBatchLine.QuantityRemaining - ldQtyToComplete;
+        lrecVICOutoutBatchLine.LotNumber := lcodLotNumber;
+        lrecVICOutoutBatchLine.ExpirationDate := ldtExpirationDate;
+        lrecVICOutoutBatchLine.Modify(true);
+
+        // Error('Total quantity to post: ' + Format(ldTotalQuantityToPost));
 
         lrecVICOutoutBatchLine.SetRecFilter();
 
         lrrefLineRef.GetTable(lrecVICOutoutBatchLine);
 
-        this.cuDataSetTools.SetCalculateFields(this.iEventID,
-                                                 lrrefLineRef,
-                                                 lrecVICOutoutBatchLine.FieldNo(QuantityRemaining),
-                                                 lrecVICOutoutBatchLine.FieldNo(QuantityOrdered),
-                                                 lrecVICOutoutBatchLine.FieldNo(QuantityToComplete),
-                                                 lrecVICOutoutBatchLine.FieldNo(QuantityCompleted)
-                                                 );
+        // this.cuDataSetTools.SetCalculateFields(this.iEventID,
+        //                                          lrrefLineRef,
+        //                                          lrecVICOutoutBatchLine.FieldNo(QuantityRemaining),
+        //                                          lrecVICOutoutBatchLine.FieldNo(QuantityOrdered),
+        //                                          lrecVICOutoutBatchLine.FieldNo(QuantityToComplete),
+        //                                          lrecVICOutoutBatchLine.FieldNo(QuantityCompleted)
+        //                                          );
 
 
         ldnOutput.Append('<DATASET>');
@@ -637,20 +600,43 @@ codeunit 50876 "IW Vicinity Mgmt"
     procedure PostVICOutputBatch(var ptrecEventParams: Record "IWX Event Param" temporary; var pbsOutput: BigText)
     var
         lrecVICOutputBatch: Record "VIC IW Batch";
+        lrecVICOutoutBatchLine: Record "VIC IW Batch Output";
+        lrecVICBatchTransaction: Record "VIC IW Batch Transaction"; 
         lcodFacilityID: Code[15];
         lcodBatchNumber: Code[20];
+        lcodUser: Code[50];
         ltcLogDetailsMsg: Label 'Post Batch [%1]', Comment = '%1=Batch Number';
+        lcuVICWebServiceInterface: Codeunit "VIC Web Api";
+        lsResultMessage: Text;
     begin
         lcodFacilityID := CopyStr(ptrecEventParams.GetExtendedValue('facility_id'), 1, MaxStrLen(lcodFacilityID));
         lcodBatchNumber := CopyStr(ptrecEventParams.GetExtendedValue('output_batch_number'), 1, MaxStrLen(lcodBatchNumber));
+        lcodUser := CopyStr(ptrecEventParams.GetExtendedValue('user_name'), 1, MaxStrLen(lcodUser));
+        lsResultMessage := '';
 
-        lrecVICOutputBatch.Get(lcodFacilityID, lcodBatchNumber);
+        
+        lrecVICOutputBatch.Get(lcodUser, lcodFacilityID, lcodBatchNumber);
+
+        lcuVICWebServiceInterface.OnPostIWBatchOutput(lcodFacilityID, lcodBatchNumber, lcodUser, System.Today, lsResultMessage);
+
+        lrecVICOutoutBatchLine.SetRange(FacilityId, lcodFacilityID);
+        lrecVICOutoutBatchLine.SetRange(BatchNumber, lcodBatchNumber);
 
         //
         // do posting here
         //
 
-        this.cuCommonFuncs.generateSuccessReturn(pbsOutput);
+
+        // loop through the lines and build up each row
+        if (lrecVICOutoutBatchLine.FindSet(false)) then
+            repeat
+                // process each line
+            until lrecVICOutoutBatchLine.Next() = 0;
+
+
+        this.cuCommonFuncs.generateSuccessReturn(lsResultMessage, pbsOutput);
+
+
 
         ptrecEventParams.setValue('details', StrSubstNo(ltcLogDetailsMsg, lcodBatchNumber));
         ptrecEventParams.setValue('Document Type', Format(DATABASE::"VIC IW Batch"));

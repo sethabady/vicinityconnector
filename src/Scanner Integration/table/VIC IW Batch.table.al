@@ -61,7 +61,7 @@ table 50806 "VIC IW Batch"
 
     keys
     {
-        key(Key1; FacilityId, BatchNumber)
+        key(Key1; User, FacilityId, BatchNumber)
         {
             Clustered = true;
         }
