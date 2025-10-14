@@ -2,7 +2,7 @@
   "id": "22db7218-852e-4e91-bd5e-3348043bc712",
   "name": "Vicinity Connector",
   "publisher": "Vicinity Software",
-  "version": "1.0.0.0",
+  "version": "1.0.0.4",
   "brief": "",
   "description": "",
   "privacyStatement": "",
@@ -22,7 +22,13 @@
     "publisher": "Insight Works",
     "name": "Warehouse Insight Advanced WMS",
     "version": "2.13.0.0"
-  }
+  },
+  {
+    "id": "52ced3bf-2ec6-4f4d-94e6-c35c80a0e2d8",
+    "name": "Vicinity Software",
+    "publisher": "Vicinity Software",
+     "version": "23.1.20250731.1"
+ }
 ],
   "screenshots": [],
   "platform": "1.0.0.0",

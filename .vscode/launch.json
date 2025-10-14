@@ -23,7 +23,7 @@
             "type": "al",
             "request": "launch",
             "tenant": "31916a16-8d4d-4e9b-b8bd-a4031001d6e5",
-            "schemaUpdateMode": "ForceSync",
+            "schemaUpdateMode": "ForceSync",    
             "environmentType": "Sandbox",
             "environmentName": "Sandbox2"
             
